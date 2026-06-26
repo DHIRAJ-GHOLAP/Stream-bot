@@ -1,0 +1,15 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "old-origin"]
+	url = https://github.com/DHIRAJ-GHOLAP/Azure-Voice-Bot.git
+	fetch = +refs/heads/*:refs/remotes/old-origin/*
+[branch "main"]
+	remote = old-origin
+	merge = refs/heads/main
+	vscode-merge-base = origin/main
+[remote "origin"]
+	url = https://github.com/DHIRAJ-GHOLAP/Stream-bot.git
+	fetch = +refs/heads/*:refs/remotes/origin/*

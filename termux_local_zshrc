@@ -1,0 +1,35 @@
+# Highly Optimized Advanced ZSH Configuration
+
+# 1. Custom Prompt (Sleek, Fast, Hacker-style)
+PROMPT=$'\n%F{cyan}⚡ %F{magenta}%n%f@%F{yellow}termux %F{green}%~ \n%F{cyan}❯%f '
+
+# 2. History Setup
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt appendhistory
+
+# 3. Aliases
+alias update="pkg update && pkg upgrade -y"
+alias monitor="htop"
+alias logs="tail -f ~/Azure-Voice-Bot/bot.log"
+alias serverlogs="tail -f ~/Azure-Voice-Bot/server.log"
+alias c="clear && tmux clear-history"
+alias clear="clear && tmux clear-history"
+alias l="ls -lah"
+
+# 4. Plugins
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
+source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+
+# 5. Startup Commands
+# Clear screen and show cool system info
+clear
+if command -v fastfetch &> /dev/null; then
+    fastfetch
+fi
+
+# 6. Bot Watchdog (Legacy from previous config)
+if ! pgrep -f "watchdog.sh" >/dev/null; then 
+    nohup bash ~/Azure-Voice-Bot/watchdog.sh > /dev/null 2>&1 & 
+fi

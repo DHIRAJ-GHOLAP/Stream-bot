@@ -1,0 +1,15 @@
+.env
+node_modules/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+npm-debug.log*
+user_volumes.json
+vc_members.json
+*.log
+ffmpeg_log.txt
+output_test.mp4
+restart.sh
+
+

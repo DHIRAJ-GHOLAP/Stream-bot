@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Voice Radio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+    <div class="container">
+        <header style="position: relative;">
+            <a href="admin.html" style="position: absolute; right: 0; top: 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; font-size: 0.8rem; transition: all 0.2s;">⚙️ Admin</a>
+            <h1>Discord Voice Radio</h1>
+            <p>Live stream from your Voice Channels</p>
+        </header>
+
+        <!-- Guild Selector -->
+        <div class="card" id="guild-card">
+            <h2 class="card-title-blue">Select Server</h2>
+            <p class="card-subtitle">Choose which VC to connect to</p>
+            <div id="guild-list" class="guild-list">
+                <p class="no-guilds">No active voice channels. Use <kbd>!join</kbd> in Discord.</p>
+            </div>
+            <button id="refresh-btn" class="refresh-btn">↻ Refresh</button>
+        </div>
+
+        <!-- Listen Card (hidden until guild selected) -->
+        <div class="card hidden" id="listen-card">
+            <div class="active-guild-badge" id="active-guild-badge"></div>
+            <div class="status-indicator">
+                <div class="dot" id="status-dot"></div>
+                <span id="status-text">Disconnected</span>
+            </div>
+            
+            <div class="speakers-container" id="speakers-container">
+                <!-- Speaker profiles will be injected here -->
+            </div>
+
+            <button id="start-btn">Start Listening</button>
+        </div>
+
+        <!-- Push-to-Talk Card (hidden until guild selected) -->
+        <div class="card ptt-card hidden" id="ptt-card">
+            <h2 class="card-title-red">Push to Talk</h2>
+            <p class="card-subtitle">Hold the button to speak through the bot</p>
+            
+            <div class="ptt-indicator" id="ptt-indicator">
+                <svg id="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </div>
+            
+            <button id="ptt-btn" class="ptt-button">🎙️ Hold to Speak</button>
+            <span class="ptt-hint">or hold <kbd>Space</kbd></span>
+        </div>
+
+        <!-- Disconnect button -->
+        <button class="disconnect-btn hidden" id="disconnect-btn">← Back to Server List</button>
+    </div>
+    
+    <script src="starfield.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
