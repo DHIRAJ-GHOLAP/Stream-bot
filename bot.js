@@ -14,7 +14,8 @@ const {
 const OpusScript = require('opusscript');
 const WebSocket = require('ws');
 const fs = require('fs');
-const { PassThrough } = require('stream');
+const stream = require('stream');
+const { PassThrough } = stream;
 const { spawn } = require('child_process');
 const cron = require('node-cron');
 const { createCanvas, loadImage } = require('canvas');
@@ -50,6 +51,15 @@ function censorMessage(content) {
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const SERVER_URL = process.env.SERVER_URL || 'ws://localhost:8001';
+
+// Prevent UDP socket disconnects from crashing the process
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const AUTO_VOICE_CHANNEL_ID = process.env.VOICE_CHANNEL_ID;
 const YOUTUBE_STREAM_KEY = process.env.YOUTUBE_STREAM_KEY;
 const CHAT_CHANNEL_ID = process.env.CHAT_CHANNEL_ID;
@@ -367,14 +377,15 @@ function startYouTubeStream() {
         '-preset', 'ultrafast',
         '-tune', 'zerolatency',
         '-threads', '4',
-        '-r', '15',
-        '-b:v', '1500k',
-        '-minrate', '1500k',
-        '-maxrate', '1500k',
-        '-bufsize', '3000k',
+        '-r', '30',
+        '-b:v', '2500k',
+        '-minrate', '2500k',
+        '-maxrate', '2500k',
+        '-bufsize', '5000k',
         '-nal-hrd', 'cbr',
         '-pix_fmt', 'yuv420p',
-        '-g', '30',
+        '-g', '60',
+        '-keyint_min', '60',
         '-c:a', 'aac',
         '-b:a', '128k',
         '-ar', '44100',
@@ -473,6 +484,27 @@ function unregisterGuild(guildId) {
     }
 }
 
+class ContinuousAudioStream extends stream.Readable {
+    constructor() {
+        super();
+        this.audioBuffer = Buffer.alloc(0);
+    }
+    _read(size) {
+        if (this.audioBuffer.length >= size) {
+            this.push(this.audioBuffer.subarray(0, size));
+            this.audioBuffer = this.audioBuffer.subarray(size);
+        } else {
+            const out = Buffer.alloc(size);
+            this.audioBuffer.copy(out);
+            this.push(out);
+            this.audioBuffer = Buffer.alloc(0);
+        }
+    }
+    writeAudio(data) {
+        this.audioBuffer = Buffer.concat([this.audioBuffer, data]);
+    }
+}
+
 // ── Per-guild WebSocket connections ─────────────────────────────
 
 function setupGuild(guildId, guildName, channelName, connection) {
@@ -519,7 +551,29 @@ function setupGuild(guildId, guildName, channelName, connection) {
         });
         state.speakWs.on('message', (data) => {
             if (state.passthrough && !state.passthrough.destroyed) {
-                state.passthrough.write(Buffer.from(data));
+                const pcmBuffer = Buffer.from(data);
+                state.passthrough.writeAudio(pcmBuffer);
+                
+                // Mix dashboard/bot audio into YouTube stream
+                const BOT_USER_ID = 'BOT_AUDIO';
+                if (!state.mixQueues.has(BOT_USER_ID)) {
+                    state.mixQueues.set(BOT_USER_ID, []);
+                }
+                const queue = state.mixQueues.get(BOT_USER_ID);
+                
+                let offset = 0;
+                while (offset < pcmBuffer.length) {
+                    const chunk = pcmBuffer.subarray(offset, offset + 3840);
+                    if (chunk.length === 3840) {
+                        queue.push(chunk);
+                    } else if (chunk.length > 0) {
+                        const padded = Buffer.alloc(3840);
+                        chunk.copy(padded);
+                        queue.push(padded);
+                    }
+                    offset += 3840;
+                    if (queue.length > 50) queue.shift();
+                }
             }
         });
     }
@@ -545,26 +599,22 @@ function setupGuild(guildId, guildName, channelName, connection) {
     });
     connection.subscribe(state.audioPlayer);
 
-    state.passthrough = new PassThrough();
+    state.passthrough = new ContinuousAudioStream();
     const resource = createAudioResource(state.passthrough, {
         inputType: StreamType.Raw,
         inlineVolume: false,
     });
     state.audioPlayer.play(resource);
 
-    // Keep connection alive by sending a tiny silence frame to prevent UDP socket closure
-    state.keepAliveTimer = setInterval(() => {
-        if (state.passthrough && !state.passthrough.destroyed) {
-            state.passthrough.write(Buffer.alloc(3840)); // 20ms of silence
-        }
-    }, 15000);
+    // Manual keepAliveTimer removed: discord.js/voice natively handles UDP keepalives.
+    // Writing 20ms of silence every 15s causes the bot to toggle Speaking state and triggers the yellow warning icon.
 
     state.audioPlayer.on('error', (err) => {
         console.error(`[${guildId}] Player error:`, err.message);
         if (state.passthrough && !state.passthrough.destroyed) {
             state.passthrough.destroy();
         }
-        state.passthrough = new PassThrough();
+        state.passthrough = new ContinuousAudioStream();
         const newResource = createAudioResource(state.passthrough, {
             inputType: StreamType.Raw,
             inlineVolume: false,
@@ -798,6 +848,7 @@ function subscribeToUser(guildId, receiver, userId) {
                 if (queue.length > 50) queue.shift(); // Max 1s buffer
             }
         } catch (err) {
+            console.error(`[${guildId}] Decode error for user ${userId}:`, err.message);
             // Ignore decode errors like 'Invalid packet' from Discord silence padding
         }
     });
@@ -896,6 +947,7 @@ function flushMixedAudio(guildId) {
             if (isSilent) {
                 // Silently drop or handle all-zeroes warning if necessary
             }
+            if (Math.random() < 0.05) console.log(`[Audio Debug] Mixed frame length: ${frames.length}, size: ${mixed.length}`);
         }
 
 
@@ -906,6 +958,13 @@ function flushMixedAudio(guildId) {
 
         if (ffmpegProcess && ffmpegProcess.stdio[3] && ffmpegProcess.stdio[3].writable) {
             ffmpegProcess.stdio[3].write(mixed);
+        }
+        
+        // Dump first 5 seconds of audio
+        if (state.pendingAudioMs_dump === undefined) state.pendingAudioMs_dump = 0;
+        if (state.pendingAudioMs_dump < 5000 && frames.length > 0) {
+            require('fs').appendFileSync('audio_dump.raw', mixed);
+            state.pendingAudioMs_dump += 20;
         }
     }
 
@@ -976,7 +1035,7 @@ client.on('messageCreate', async (message) => {
     const userId = message.author.id;
 
     // --- Admin Commands for Whitelist & Troll ---
-    if (message.content.startsWith('?wl') || message.content.startsWith('?troll') || message.content.startsWith('?unwl') || message.content.startsWith('?untroll') || message.content.startsWith('?antispam') || message.content.startsWith('!?sm')) {
+    if (message.content.startsWith('?wl') || message.content.startsWith('?troll') || message.content.startsWith('?unwl') || message.content.startsWith('?untroll') || message.content.startsWith('?antispam') || message.content.startsWith('!?sm') || message.content.startsWith('?restart')) {
         if (message.author.id !== message.guild.ownerId && !OWNER_IDS.includes(message.author.id)) {
             return message.reply("Only Server Owners can use this command.");
         }
@@ -992,6 +1051,11 @@ client.on('messageCreate', async (message) => {
             } else {
                 return message.reply(`Anti-Spam is currently **${antiSpamEnabled ? 'ON' : 'OFF'}**. Use \`?antispam on\` or \`?antispam off\`.`);
             }
+        }
+        
+        if (message.content.startsWith('?restart')) {
+            await message.reply("🔄 Restarting the stream... I'll be back in a few seconds!");
+            process.exit(1);
         }
 
         const mentions = message.mentions.users;
