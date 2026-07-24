@@ -1,7 +1,7 @@
 #!/bin/bash
 # Azure Voice Bot Watchdog
 
-cd ~/Azure-Voice-Bot || exit
+cd "/home/flash/Documents/Vocice vc" || exit
 
 echo "[Watchdog] Starting watchdog..."
 termux-wake-lock
@@ -19,15 +19,15 @@ while true; do
             echo "[Watchdog] $(date): Stream dead or network just reconnected. Restarting..."
             
             # Kill any stuck python server or old node instance
-            pkill -f ".venv/bin/python server.py"
+            pkill -f "venv/bin/python server.py"
             pkill -f "node bot.js"
             
             # Reset state
             was_disconnected=false
             
             # Start the server and bot
-            source .venv/bin/activate
-            nohup .venv/bin/python server.py > server.log 2>&1 &
+            source venv/bin/activate
+            nohup venv/bin/python server.py > server.log 2>&1 &
             nohup node bot.js >> bot.log 2>&1 &
             
             # Start the Web Portal & Tunnels

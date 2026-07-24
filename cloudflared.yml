@@ -1,0 +1,23 @@
+# Cloudflare Named Tunnel Configuration for Azure Hub
+tunnel: 103373bc-33eb-4b5a-bf12-7511b4ef9566
+credentials-file: /data/data/com.termux/files/home/.cloudflared/103373bc-33eb-4b5a-bf12-7511b4ef9566.json
+
+ingress:
+  # Main Azure Hub Dashboard
+  - hostname: azure.gholap.xyz
+    service: http://localhost:8000
+
+  # Automatic Web Terminal Module
+  - hostname: terminal.gholap.xyz
+    service: http://localhost:8000
+
+  # Automatic NAS Storage Module
+  - hostname: nas.gholap.xyz
+    service: http://localhost:8000
+
+  # Automatic Admin Console Module
+  - hostname: admin.gholap.xyz
+    service: http://localhost:8000
+
+  # Catch-all rule (required by Cloudflare)
+  - service: http_status:404

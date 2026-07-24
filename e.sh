@@ -1,6 +1,7 @@
+cat << 'INNER_EOF' > /data/data/com.termux/files/home/Azure-Voice-Bot/start_portal.sh
 #!/data/data/com.termux/files/usr/bin/bash
 
-cd ~/Azure-Voice-Bot || cd "$(dirname "$0")"
+cd ~/Azure-Voice-Bot
 
 echo "Stopping existing cloudflared tunnels..."
 pkill cloudflared
@@ -26,5 +27,6 @@ else
     nohup cloudflared tunnel --url http://localhost:7681 > cf_webssh.log 2>&1 &
     nohup cloudflared tunnel --url http://localhost:8000 > cf_portal.log 2>&1 &
 fi
-
-echo "All services and tunnel initiated."
+INNER_EOF
+chmod +x /data/data/com.termux/files/home/Azure-Voice-Bot/start_portal.sh
+echo "Updated start_portal.sh!" > /sdcard/Download/update_status.txt
