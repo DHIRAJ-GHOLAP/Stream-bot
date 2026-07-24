@@ -640,16 +640,18 @@ const server = http.createServer((req, res) => {
 
 server.on('upgrade', (req, socket, head) => {
     let targetPort = 8001; // default to bot ws
-    const reqUrl = req.url;
+    let targetUrl = req.url;
 
-    if (reqUrl.startsWith('/terminal') || reqUrl.startsWith('/ws/terminal') || reqUrl.startsWith('/ws/token') || reqUrl.startsWith('/ws/ssh') || reqUrl.startsWith('/ws/')) {
+    if (targetUrl.startsWith('/terminal')) {
         targetPort = 7681; // ttyd terminal ws
-    } else if (reqUrl.startsWith('/nas')) {
+        targetUrl = targetUrl.substring('/terminal'.length) || '/';
+    } else if (targetUrl.startsWith('/nas')) {
         targetPort = 8080; // NAS ws
+        targetUrl = targetUrl.substring('/nas'.length) || '/';
     }
 
     const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
-        proxySocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
+        proxySocket.write(`${req.method} ${targetUrl} HTTP/${req.httpVersion}\r\n`);
         for (let i = 0; i < req.rawHeaders.length; i += 2) {
             proxySocket.write(`${req.rawHeaders[i]}: ${req.rawHeaders[i+1]}\r\n`);
         }
