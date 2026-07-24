@@ -4,6 +4,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 mkdir -p ~/.cloudflared
+if [ -f "cert.pem" ]; then
+    cp -f cert.pem ~/.cloudflared/ 2>/dev/null || true
+fi
 if [ -f "103373bc-33eb-4b5a-bf12-7511b4ef9566.json" ]; then
     cp -f 103373bc-33eb-4b5a-bf12-7511b4ef9566.json ~/.cloudflared/ 2>/dev/null || true
 fi
@@ -45,7 +48,7 @@ CRED_FILE="103373bc-33eb-4b5a-bf12-7511b4ef9566.json"
 
 if [ -f "cloudflared.yml" ] && grep -q "azure.gholap.xyz" cloudflared.yml; then
     echo "Starting Permanent Cloudflare Named Tunnel (azure.gholap.xyz)..."
-    nohup $CF_CMD tunnel --config cloudflared.yml --credentials-file "$CRED_FILE" run > cf_named_tunnel.log 2>&1 &
+    nohup $CF_CMD tunnel --config cloudflared.yml --origincert cert.pem run > cf_named_tunnel.log 2>&1 &
 else
     echo "cloudflared.yml not fully configured yet. Starting temporary fallback quick tunnels..."
     nohup $CF_CMD tunnel --url http://localhost:8001 > cf_dashboard.log 2>&1 &
