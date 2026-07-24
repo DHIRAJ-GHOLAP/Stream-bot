@@ -1,6 +1,6 @@
 # Cloudflare Named Tunnel Configuration for Azure Hub
 tunnel: 103373bc-33eb-4b5a-bf12-7511b4ef9566
-credentials-file: /data/data/com.termux/files/home/.cloudflared/103373bc-33eb-4b5a-bf12-7511b4ef9566.json
+credentials-file: 103373bc-33eb-4b5a-bf12-7511b4ef9566.json
 
 ingress:
   # Main Azure Hub Dashboard
