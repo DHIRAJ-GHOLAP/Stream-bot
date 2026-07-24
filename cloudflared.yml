@@ -2,6 +2,10 @@
 tunnel: 103373bc-33eb-4b5a-bf12-7511b4ef9566
 credentials-file: 103373bc-33eb-4b5a-bf12-7511b4ef9566.json
 
+# Force IPv4 edge IPs and http2 to bypass DNS SRV lookup failures on Android/Termux
+protocol: http2
+edge-ip-version: 4
+
 ingress:
   # Main Azure Hub Dashboard
   - hostname: azure.gholap.xyz
