@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const net = require('net');
 
 const HOME = process.env.HOME || '/data/data/com.termux/files/home';
 const LOG_DIR = path.join(HOME, 'Azure-Voice-Bot');
@@ -635,6 +636,39 @@ const server = http.createServer((req, res) => {
 
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(html);
+});
+
+server.on('upgrade', (req, socket, head) => {
+    let targetPort = 8001; // default to bot ws
+    const reqUrl = req.url;
+
+    if (reqUrl.startsWith('/terminal') || reqUrl.startsWith('/ws/terminal') || reqUrl.startsWith('/ws/token') || reqUrl.startsWith('/ws/ssh') || reqUrl.startsWith('/ws/')) {
+        targetPort = 7681; // ttyd terminal ws
+    } else if (reqUrl.startsWith('/nas')) {
+        targetPort = 8080; // NAS ws
+    }
+
+    const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
+        proxySocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
+        for (let i = 0; i < req.rawHeaders.length; i += 2) {
+            proxySocket.write(`${req.rawHeaders[i]}: ${req.rawHeaders[i+1]}\r\n`);
+        }
+        proxySocket.write('\r\n');
+        if (head && head.length > 0) {
+            proxySocket.write(head);
+        }
+        proxySocket.pipe(socket);
+        socket.pipe(proxySocket);
+    });
+
+    proxySocket.on('error', (err) => {
+        console.error(`[WS Proxy Error] ${req.url} -> 127.0.0.1:${targetPort}:`, err.message);
+        socket.destroy();
+    });
+
+    socket.on('error', (err) => {
+        proxySocket.destroy();
+    });
 });
 
 const PORT = parseInt(process.env.PORT || '8000', 10);
