@@ -22,6 +22,10 @@ while true; do
             pkill -f "venv/bin/python server.py"
             pkill -f "node bot.js"
             
+            # Pull latest updates from GitHub
+            echo "[Watchdog] $(date): Pulling latest changes from GitHub..."
+            git pull origin main || true
+            
             # Reset state
             was_disconnected=false
             
