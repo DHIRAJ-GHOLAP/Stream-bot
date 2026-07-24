@@ -47,8 +47,30 @@ function proxyRequest(req, res, targetPort, pathPrefixToStrip) {
 
     proxyReq.on('error', (err) => {
         console.error(`[Proxy Error] ${req.url} -> 127.0.0.1:${targetPort}:`, err.message);
-        res.writeHead(502, { 'Content-Type': 'text/html' });
-        res.end(`<h3>502 Bad Gateway</h3><p>Internal service at port ${targetPort} is offline or starting up.</p>`);
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background: #090a0f; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+        .box { background: rgba(22, 27, 46, 0.85); padding: 2.5rem 2rem; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+        h3 { margin-bottom: 0.5rem; font-size: 1.3rem; font-weight: 700; }
+        p { color: #94a3b8; font-size: 0.92rem; line-height: 1.5; margin-bottom: 1.75rem; }
+        button { background: linear-gradient(135deg, #6366f1, #3b82f6); border: none; color: #fff; padding: 0.7rem 1.4rem; border-radius: 10px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="icon">⚡</div>
+        <h3>Service Initializing</h3>
+        <p>The backend service for this module (Port ${targetPort}) is starting up. Please click retry below in a few seconds.</p>
+        <button onclick="location.reload()">🔄 Retry Connection</button>
+    </div>
+</body>
+</html>`);
     });
 
     req.pipe(proxyReq, { end: true });
