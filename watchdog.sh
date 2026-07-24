@@ -1,10 +1,11 @@
 #!/bin/bash
 # Azure Voice Bot Watchdog
 
-cd "/home/flash/Documents/Vocice vc" || exit
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR" || cd ~/Azure-Voice-Bot || exit
 
 echo "[Watchdog] Starting watchdog..."
-termux-wake-lock
+termux-wake-lock 2>/dev/null || true
 
 was_disconnected=false
 
@@ -19,7 +20,7 @@ while true; do
             echo "[Watchdog] $(date): Stream dead or network just reconnected. Restarting..."
             
             # Kill any stuck python server or old node instance
-            pkill -f "venv/bin/python server.py"
+            pkill -f "python server.py"
             pkill -f "node bot.js"
             
             # Pull latest updates from GitHub
@@ -30,8 +31,12 @@ while true; do
             was_disconnected=false
             
             # Start the server and bot
-            source venv/bin/activate
-            nohup venv/bin/python server.py > server.log 2>&1 &
+            if [ -d "venv" ]; then
+                source venv/bin/activate 2>/dev/null || true
+                nohup python server.py > server.log 2>&1 &
+            else
+                nohup python3 server.py > server.log 2>&1 &
+            fi
             nohup node bot.js >> bot.log 2>&1 &
             
             # Start the Web Portal & Tunnels
