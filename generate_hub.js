@@ -47,8 +47,9 @@ function proxyRequest(req, res, targetPort, pathPrefixToStrip) {
 
     proxyReq.on('error', (err) => {
         console.error(`[Proxy Error] ${req.url} -> 127.0.0.1:${targetPort}:`, err.message);
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`<!DOCTYPE html>
+        if (!res.headersSent) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -71,6 +72,9 @@ function proxyRequest(req, res, targetPort, pathPrefixToStrip) {
     </div>
 </body>
 </html>`);
+        } else {
+            res.end();
+        }
     });
 
     req.pipe(proxyReq, { end: true });
