@@ -3,6 +3,11 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
+mkdir -p ~/.cloudflared
+if [ -f "103373bc-33eb-4b5a-bf12-7511b4ef9566.json" ]; then
+    cp -f 103373bc-33eb-4b5a-bf12-7511b4ef9566.json ~/.cloudflared/ 2>/dev/null || true
+fi
+
 echo "Stopping existing cloudflared tunnels..."
 pkill cloudflared
 

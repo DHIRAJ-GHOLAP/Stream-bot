@@ -1,6 +1,12 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-cd ~/Azure-Voice-Bot || cd "$(dirname "$0")"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+mkdir -p ~/.cloudflared
+if [ -f "103373bc-33eb-4b5a-bf12-7511b4ef9566.json" ]; then
+    cp -f 103373bc-33eb-4b5a-bf12-7511b4ef9566.json ~/.cloudflared/ 2>/dev/null || true
+fi
 
 echo "Stopping existing cloudflared tunnels..."
 pkill cloudflared
@@ -16,15 +22,20 @@ echo "Starting Portal Hub Server (Port 8000)..."
 pkill -f "node generate_hub.js"
 nohup node generate_hub.js > portal_server.log 2>&1 &
 
+CF_CMD="cloudflared"
+if [ -f "./cloudflared" ]; then
+    CF_CMD="./cloudflared"
+fi
+
 if [ -f "cloudflared.yml" ] && grep -q "azure.gholap.xyz" cloudflared.yml; then
     echo "Starting Permanent Cloudflare Named Tunnel (azure.gholap.xyz)..."
-    nohup cloudflared tunnel --config cloudflared.yml run > cf_named_tunnel.log 2>&1 &
+    nohup $CF_CMD tunnel --config cloudflared.yml run > cf_named_tunnel.log 2>&1 &
 else
     echo "cloudflared.yml not fully configured yet. Starting temporary fallback quick tunnels..."
-    nohup cloudflared tunnel --url http://localhost:8001 > cf_dashboard.log 2>&1 &
-    nohup cloudflared tunnel --url http://localhost:8080 > cf_nas.log 2>&1 &
-    nohup cloudflared tunnel --url http://localhost:7681 > cf_webssh.log 2>&1 &
-    nohup cloudflared tunnel --url http://localhost:8000 > cf_portal.log 2>&1 &
+    nohup $CF_CMD tunnel --url http://localhost:8001 > cf_dashboard.log 2>&1 &
+    nohup $CF_CMD tunnel --url http://localhost:8080 > cf_nas.log 2>&1 &
+    nohup $CF_CMD tunnel --url http://localhost:7681 > cf_webssh.log 2>&1 &
+    nohup $CF_CMD tunnel --url http://localhost:8000 > cf_portal.log 2>&1 &
 fi
 
 echo "All services and tunnel initiated."
