@@ -41,9 +41,11 @@ else
     CF_CMD="./cloudflared"
 fi
 
+CRED_FILE="103373bc-33eb-4b5a-bf12-7511b4ef9566.json"
+
 if [ -f "cloudflared.yml" ] && grep -q "azure.gholap.xyz" cloudflared.yml; then
     echo "Starting Permanent Cloudflare Named Tunnel (azure.gholap.xyz)..."
-    nohup $CF_CMD tunnel --config cloudflared.yml run > cf_named_tunnel.log 2>&1 &
+    nohup $CF_CMD tunnel --config cloudflared.yml --credentials-file "$CRED_FILE" run > cf_named_tunnel.log 2>&1 &
 else
     echo "cloudflared.yml not fully configured yet. Starting temporary fallback quick tunnels..."
     nohup $CF_CMD tunnel --url http://localhost:8001 > cf_dashboard.log 2>&1 &
